@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hành Trình Tìm Vàng Cùng Cậu Vàng</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for Synthesized Audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%), url('https://images.unsplash.com/photo-1599839619722-39751411ea63?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed #1e3c72;
+            color: #fff;
+            overflow: hidden; /* Prevent scroll on main body */
+            user-select: none;
+        }
+        h1, h2, h3, .heading-font {
+            font-family: 'Baloo 2', cursive;
+        }
+        .btn-game {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 #00000040;
+        }
+        .btn-game:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #00000040;
+        }
+        .btn-answer {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1e3c72;
+            border: 2px solid #cbd5e1;
+        }
+        .btn-answer:hover {
+            background: #f1f5f9;
+            border-color: #3b82f6;
+        }
+        .correct-answer {
+            background: #22c55e !important;
+            color: white !important;
+            border-color: #16a34a !important;
+        }
+        .wrong-answer {
+            background: #ef4444 !important;
+            color: white !important;
+            border-color: #dc2626 !important;
+        }
+        
+        /* Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(250, 204, 21, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+        }
+        .pulse-btn {
+            animation: pulse-glow 2s infinite;
+        }
+        .modal-enter {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        /* Scrollbar for letter */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #facc15;
+            border-radius: 4px;
+        }
+
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center relative">
+
+    <div id="particles-js" class="opacity-50"></div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="z-10 flex flex-col items-center text-center p-6 max-w-2xl">
+        <div class="text-7xl mb-6 floating text-yellow-400 drop-shadow-[0_0_20px_rgba(250,204,21,0.6)]">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <i class="fa-solid fa-gem mx-4"></i>
+            <i class="fa-solid fa-coins"></i>
+        </div>
+        <h1 class="text-5xl md:text-6xl font-extrabold text-yellow-400 mb-4 drop-shadow-lg">Hành Trình Tìm Vàng</h1>
+        <h2 class="text-3xl text-white mb-8 font-bold">Cùng Cậu Vàng 2026</h2>
+        <p class="text-xl mb-8 text-blue-100">Vượt qua 4 thử thách hóa học, nhận huy chương và khám phá kho báu cuối cùng!</p>
+        
+        <div class="w-full max-w-md mb-6 relative">
+            <input type="text" id="player-name" placeholder="Nhập tên của em để bắt đầu..." class="w-full px-6 py-4 rounded-full text-blue-900 text-xl font-bold text-center border-4 border-yellow-400 focus:outline-none focus:border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.6)] placeholder-blue-300 transition-all">
+            <p id="name-warning" class="text-red-400 font-bold mt-2 absolute w-full text-center hidden drop-shadow-md">Vui lòng nhập tên của em nhé!</p>
+        </div>
+
+        <button onclick="startGame()" class="btn-game pulse-btn bg-yellow-400 hover:bg-yellow-300 text-blue-900 text-2xl font-bold py-4 px-10 rounded-full heading-font mt-4">
+            <i class="fa-solid fa-play mr-2"></i> BẮT ĐẦU CHUYẾN ĐI
+        </button>
+        <p class="mt-4 text-sm text-gray-300 italic"><i class="fa-solid fa-volume-high"></i> Hãy bật âm thanh để trải nghiệm tốt nhất</p>
+    </div>
+
+    <!-- Map Screen -->
+    <div id="map-screen" class="hidden z-10 flex-col items-center w-full max-w-4xl p-4">
+        <h2 class="text-4xl text-yellow-400 font-bold mb-8 heading-font drop-shadow-md">Bản Đồ Thám Hiểm</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full px-4">
+            <!-- Round 1 -->
+            <div id="card-round-0" class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl flex items-center space-x-6 relative overflow-hidden">
+                <div class="text-5xl w-16 text-center text-blue-300"><i class="fa-solid fa-ship"></i></div>
+                <div>
+                    <h3 class="text-2xl font-bold text-white">Vòng 1: Khởi Hành</h3>
+                    <p class="text-blue-200">Mức độ: Nhận biết</p>
+                </div>
+                <div class="absolute right-4 text-4xl text-yellow-500 opacity-0 transition-opacity" id="medal-0"><i class="fa-solid fa-medal"></i></div>
+            </div>
+            <!-- Round 2 -->
+            <div id="card-round-1" class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl flex items-center space-x-6 relative overflow-hidden opacity-50">
+                <div class="text-5xl w-16 text-center text-teal-300"><i class="fa-solid fa-water"></i></div>
+                <div>
+                    <h3 class="text-2xl font-bold text-white">Vòng 2: Vượt Sóng</h3>
+                    <p class="text-blue-200">Mức độ: Thông hiểu</p>
+                </div>
+                <div class="absolute right-4 text-4xl text-yellow-500 opacity-0 transition-opacity" id="medal-1"><i class="fa-solid fa-medal"></i></div>
+            </div>
+            <!-- Round 3 -->
+            <div id="card-round-2" class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl flex items-center space-x-6 relative overflow-hidden opacity-50">
+                <div class="text-5xl w-16 text-center text-purple-300"><i class="fa-solid fa-skull"></i></div>
+                <div>
+                    <h3 class="text-2xl font-bold text-white">Vòng 3: Đảo Đầu Lâu</h3>
+                    <p class="text-blue-200">Mức độ: Vận dụng</p>
+                </div>
+                <div class="absolute right-4 text-4xl text-yellow-500 opacity-0 transition-opacity" id="medal-2"><i class="fa-solid fa-medal"></i></div>
+            </div>
+            <!-- Round 4 -->
+            <div id="card-round-3" class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl flex items-center space-x-6 relative overflow-hidden opacity-50">
+                <div class="text-5xl w-16 text-center text-yellow-400"><i class="fa-solid fa-key"></i></div>
+                <div>
+                    <h3 class="text-2xl font-bold text-white">Vòng 4: Mở Khóa Kho Báu</h3>
+                    <p class="text-blue-200">Mức độ: Vận dụng cao</p>
+                </div>
+            </div>
+        </div>
+        <button id="btn-start-round" onclick="startCurrentRound()" class="mt-10 btn-game bg-green-500 hover:bg-green-400 text-white text-2xl font-bold py-3 px-10 rounded-full heading-font hidden modal-enter">
+            Tiến Vào Vòng <span id="display-round-num">1</span> <i class="fa-solid fa-arrow-right ml-2"></i>
+        </button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden z-10 flex-col items-center w-full max-w-4xl p-4 h-full pt-10">
+        <div class="w-full flex justify-between items-center mb-6">
+            <h2 id="game-round-title" class="text-3xl text-yellow-400 font-bold heading-font drop-shadow-md">Vòng 1</h2>
+            <div class="text-xl font-bold bg-white/20 px-4 py-1 rounded-full border border-white/30">
+                Câu <span id="question-counter">1/10</span>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="w-full bg-blue-900/50 rounded-full h-3 mb-8 border border-blue-800">
+            <div id="progress-bar" class="bg-yellow-400 h-3 rounded-full transition-all duration-300" style="width: 10%"></div>
+        </div>
+
+        <!-- Question Box -->
+        <div class="bg-white text-blue-900 rounded-3xl p-8 w-full shadow-2xl mb-8 border-4 border-yellow-400">
+            <p id="question-text" class="text-2xl md:text-3xl font-bold mb-6 text-center leading-relaxed">Nội dung câu hỏi sẽ hiển thị ở đây?</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="options-container">
+                <!-- Buttons injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="modal-feedback" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div id="feedback-content" class="bg-white text-center rounded-3xl p-8 max-w-sm w-full border-4 border-green-500 transform transition-transform scale-90">
+            <div id="feedback-icon" class="text-7xl mb-4 text-green-500"><i class="fa-solid fa-circle-check"></i></div>
+            <h3 id="feedback-title" class="text-3xl font-bold text-gray-800 heading-font mb-2">Chính Xác!</h3>
+            <p id="feedback-desc" class="text-gray-600 mb-6 text-lg">Tuyệt vời, bạn đã trả lời đúng.</p>
+            <button onclick="nextQuestion()" class="btn-game bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full w-full text-xl">
+                Tiếp Tục <i class="fa-solid fa-forward ml-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Round End Medal Modal -->
+    <div id="modal-round-end" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-gradient-to-b from-blue-800 to-blue-900 text-center rounded-3xl p-10 max-w-md w-full border-4 border-yellow-400 modal-enter shadow-[0_0_50px_rgba(250,204,21,0.5)]">
+            <h3 class="text-4xl font-bold text-yellow-400 heading-font mb-4">HOÀN THÀNH VÒNG!</h3>
+            <div class="text-8xl mb-6 text-yellow-300 floating"><i class="fa-solid fa-medal"></i></div>
+            <p class="text-white mb-8 text-xl">Bạn đã vượt qua thử thách và nhận được <span id="medal-name" class="font-bold text-yellow-300">Huy Chương Đồng</span>!</p>
+            <button onclick="returnToMap()" class="btn-game bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-bold py-3 px-8 rounded-full w-full text-xl">
+                Về Bản Đồ <i class="fa-solid fa-map-location-dot ml-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Victory / Treasure Modal -->
+    <div id="modal-victory" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-lg">
+        <div class="bg-gradient-to-b from-yellow-50 to-amber-100 text-gray-800 rounded-3xl p-6 md:p-10 max-w-3xl w-full max-h-[90vh] flex flex-col relative modal-enter border-8 border-yellow-400 shadow-[0_0_50px_rgba(250,204,21,0.8)] overflow-y-auto custom-scrollbar">
+            <div class="absolute -top-16 left-1/2 transform -translate-x-1/2 text-8xl floating z-10">
+                <i class="fa-solid fa-box-open text-yellow-600 drop-shadow-[0_0_30px_rgba(250,204,21,1)]"></i>
+            </div>
+            
+            <h2 class="text-4xl md:text-6xl font-extrabold text-yellow-600 text-center mt-12 mb-2 heading-font uppercase drop-shadow-sm">KHO BÁU TÌM THẤY!</h2>
+            <p class="text-center text-amber-700 mb-2 font-bold text-2xl">Chúc mừng <span id="display-player-name" class="text-blue-700 uppercase"></span>!</p>
+            <p class="text-center text-amber-600 mb-6 font-semibold text-lg">Em đã vượt qua mọi thử thách hóa học một cách xuất sắc.</p>
+            
+            <div class="bg-white/60 rounded-2xl p-6 border-2 border-yellow-300 flex-1 relative flex flex-col items-center justify-center">
+                <div class="flex flex-wrap justify-center gap-4 md:gap-8 my-4 text-5xl md:text-7xl">
+                    <i class="fa-solid fa-gem text-blue-500 floating" style="animation-delay: 0.1s"></i>
+                    <i class="fa-solid fa-coins text-yellow-400 floating" style="animation-delay: 0.3s"></i>
+                    <i class="fa-solid fa-crown text-yellow-500 floating" style="animation-delay: 0.2s"></i>
+                    <i class="fa-solid fa-ring text-pink-500 floating" style="animation-delay: 0.4s"></i>
+                    <i class="fa-solid fa-gem text-purple-500 floating" style="animation-delay: 0.5s"></i>
+                    <i class="fa-solid fa-coins text-yellow-500 floating" style="animation-delay: 0.6s"></i>
+                </div>
+                
+                <div class="mt-6 bg-yellow-100 px-8 py-4 rounded-full border-2 border-yellow-400 text-center shadow-inner">
+                    <p class="text-xl text-amber-800 font-bold mb-1">Điểm số của em</p>
+                    <p class="text-5xl font-black text-red-600 heading-font drop-shadow-md"><span id="final-score">0</span> / 40</p>
+                </div>
+                
+                <p id="save-status" class="mt-6 text-center font-bold text-xl text-blue-600 bg-blue-50 px-6 py-2 rounded-full border border-blue-200 transition-colors duration-300"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang gửi kết quả về máy chủ...</p>
+            </div>
+            
+            <button onclick="location.reload()" class="mt-8 btn-game bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-8 rounded-full w-full text-2xl text-center heading-font shadow-lg">
+                CHƠI LẠI TỪ ĐẦU <i class="fa-solid fa-rotate-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let app, db, auth;
+        
+        try {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            
+            if (firebaseConfig) {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                window.authenticateFirebase = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                window.authenticateFirebase();
+
+                window.submitScoreToFirebase = async (name, score) => {
+                    try {
+                        if (!auth.currentUser) await window.authenticateFirebase();
+                        if (!auth.currentUser) return false;
+                        
+                        const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                        await addDoc(scoresRef, {
+                            playerName: name,
+                            score: score,
+                            maxScore: 40,
+                            timestamp: new Date().toISOString(),
+                            userId: auth.currentUser.uid
+                        });
+                        return true;
+                    } catch (e) {
+                        console.error("Firebase save error: ", e);
+                        return false;
+                    }
+                };
+            } else {
+                window.submitScoreToFirebase = async () => false;
+            }
+        } catch (e) {
+            console.error("Firebase init error", e);
+            window.submitScoreToFirebase = async () => false;
+        }
+    </script>
+
+    <script>
+        // --- DATA ---
+        const gameData = [
+            {
+                title: "Vòng 1: Khởi Hành",
+                medal: "Huy Chương Đồng",
+                questions: [
+                    { q: "Các hạt cấu tạo nên hạt nhân của hầu hết các nguyên tử là gì?", options: ["Proton và electron", "Proton và neutron", "Electron và neutron", "Chỉ có proton"], correctIndex: 1 },
+                    { q: "Trong nguyên tử, loại hạt nào có khối lượng không đáng kể so với các hạt còn lại?", options: ["Hạt electron", "Hạt proton", "Hạt neutron", "Hạt nhân"], correctIndex: 0 },
+                    { q: "Nguyên tử luôn trung hoà về điện nên điều kiện nào sau đây luôn đúng chuẩn xác nhất?", options: ["Số hạt proton = Số hạt neutron", "Số hạt neutron = Số hạt electron", "Số hạt proton = Số hạt electron", "Số khối = 2 lần Số proton"], correctIndex: 2 },
+                    { q: "Biểu thức tính số khối (A) nào sau đây là đúng chuẩn xác nhất?", options: ["A = P + E", "A = 2Z + N", "A = P + N", "A = Z + E"], correctIndex: 2 },
+                    { q: "Lớp electron M (n=3) có chứa số electron tối đa bằng bao nhiêu?", options: ["8 electron", "18 electron", "32 electron", "2 electron"], correctIndex: 1 },
+                    { q: "Kí hiệu phân lớp electron nào sau đây là viết KHÔNG đúng quy tắc?", options: ["2p", "3d", "4s", "1p"], correctIndex: 3 },
+                    { q: "Đồng vị là những nguyên tử của cùng một nguyên tố hóa học, có cùng số proton nhưng khác nhau về đại lượng nào?", options: ["Số hạt electron", "Số hạt neutron", "Số hiệu nguyên tử", "Điện tích hạt nhân"], correctIndex: 1 },
+                    { q: "Orbital s có hình dạng như thế nào trong không gian?", options: ["Hình cầu", "Hình số 8 nổi", "Hình elip", "Không xác định"], correctIndex: 0 },
+                    { q: "Số hạt electron tối đa có thể chứa trong phân lớp p là bao nhiêu?", options: ["2 hạt", "10 hạt", "6 hạt", "14 hạt"], correctIndex: 2 },
+                    { q: "Theo nguyên lý vững bền, các electron trên cùng một phân lớp có đặc điểm năng lượng như thế nào?", options: ["Bằng nhau", "Gần bằng nhau", "Khác nhau hoàn toàn", "Tăng dần"], correctIndex: 0 }
+                ]
+            },
+            {
+                title: "Vòng 2: Vượt Sóng",
+                medal: "Huy Chương Bạc",
+                questions: [
+                    { q: "Nguyên tử nguyên tố X có cấu hình electron là 1s² 2s² 2p⁶ 3s¹. Số hiệu nguyên tử của X là bao nhiêu?", options: ["10", "11", "12", "9"], correctIndex: 1 },
+                    { q: "Ở trạng thái cơ bản, nguyên tử Aluminium (Z=13) có bao nhiêu electron ở lớp ngoài cùng?", options: ["1 electron", "2 electron", "3 electron", "4 electron"], correctIndex: 2 },
+                    { q: "Một nguyên tử X có tổng hạt cơ bản là 40. Trong đó tổng số hạt mang điện nhiều hơn không mang điện là 12. X là?", options: ["Na (Z=11)", "Mg (Z=12)", "Al (Z=13)", "Si (Z=14)"], correctIndex: 2 }, // 2Z+N=40, 2Z-N=12 => 4Z=52 => Z=13
+                    { q: "Nguyên tử Phosphorus (Z=15) ở trạng thái cơ bản có bao nhiêu electron độc thân?", options: ["1", "2", "3", "5"], correctIndex: 2 }, // 3s2 3p3 => 3 e độc thân
+                    { q: "Nguyên tố Chlorine có 2 đồng vị bền: ³⁵Cl (75,77%) và ³⁷Cl (24,23%). Nguyên tử khối trung bình xấp xỉ?", options: ["35,50", "35,48", "35,00", "36,00"], correctIndex: 1 },
+                    { q: "Kí hiệu nguyên tử ³⁷Cl (Z=17) cho ta biết hạt nhân chứa bao nhiêu hạt neutron?", options: ["17 hạt", "20 hạt", "37 hạt", "54 hạt"], correctIndex: 1 }, // 37 - 17 = 20
+                    { q: "Cấu hình electron nào dưới đây đại diện cho một nguyên tử khí hiếm?", options: ["1s² 2s² 2p⁶ 3s¹", "1s² 2s² 2p⁵", "1s² 2s² 2p⁶", "1s² 2s² 2p⁶ 3s² 3p¹"], correctIndex: 2 }, // Ne
+                    { q: "Nguyên tử M có tổng hạt cơ bản là 58. Biết M thuộc nhóm IA (kim loại kiềm). M là?", options: ["Na", "K", "Li", "Rb"], correctIndex: 1 }, // Z <= 60 => S/3.5 <= Z <= S/3 => 16.5 <= Z <= 19.3. IA => K (Z=19)
+                    { q: "Các electron thuộc lớp L (n=2) được phân bố vào bao nhiêu phân lớp?", options: ["1 phân lớp", "2 phân lớp", "3 phân lớp", "4 phân lớp"], correctIndex: 1 }, // 2s, 2p
+                    { q: "Cho Na (Z=11), Mg (Z=12), Al (Z=13). Dấu hiệu chung về cấu hình electron của các nguyên tử này là gì?", options: ["Đều có 8 electron ở lớp ngoài", "Đều thuộc họ nguyên tố p", "Đều có số electron lớp ngoài cùng ≤ 3", "Đều là phi kim"], correctIndex: 2 }
+                ]
+            },
+            {
+                title: "Vòng 3: Đảo Đầu Lâu",
+                medal: "Huy Chương Vàng",
+                questions: [
+                    { q: "Cation X³⁺ có cấu hình electron cơ bản là 1s² 2s² 2p⁶. Nguyên tố X là gì?", options: ["Mg (Z=12)", "Na (Z=11)", "Al (Z=13)", "Ne (Z=10)"], correctIndex: 2 }, // 10 + 3 = 13
+                    { q: "Oxy có 3 đồng vị ¹⁶O, ¹⁷O, ¹⁸O. Tạo thành tối đa bao nhiêu loại phân tử khí O₂?", options: ["3", "6", "9", "4"], correctIndex: 1 }, // n(n+1)/2 = 3*4/2 = 6
+                    { q: "Ion M²⁺ có tổng hạt 90, số hạt mang điện > không mang điện 22. M là nguyên tố nào?", options: ["Fe (Sắt)", "Cu (Đồng)", "Zn (Kẽm)", "Ni (Niken)"], correctIndex: 1 }, // 2Z + N - 2 = 90; (2Z-2) - N = 22 => 4Z - 4 = 112 => Z=29 (Cu)
+                    { q: "Từ ¹H, ²H và hai đồng vị ³⁵Cl, ³⁷Cl có thể tạo ra bao nhiêu loại phân tử HCl khác nhau?", options: ["2", "3", "4", "6"], correctIndex: 2 }, // 2 * 2 = 4
+                    { q: "Hợp chất M₂O tổng hạt = 92. Hạt mang điện > không mang 28. (O có Z=8, N=8). M₂O là?", options: ["K₂O", "Na₂O", "Li₂O", "H₂O"], correctIndex: 1 }, // 2*(2Z+N) + 24 = 92; 2*(2Z) + 16 - (2N+8) = 28 => Z=11 (Na)
+                    { q: "Cấu hình đại diện kim loại chuyển tiếp ở trạng thái cơ bản?", options: ["1s² 2s² 2p⁶ 3s² 3p⁶ 4s²", "1s² 2s² 2p⁶ 3s² 3p⁶ 3d⁵ 4s¹", "1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰ 4s² 4p¹", "1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰"], correctIndex: 1 }, // Cr
+                    { q: "Anion X²⁻ có cấu hình e ngoài cùng là 3s² 3p⁶. Số hiệu nguyên tử X là?", options: ["16", "17", "18", "14"], correctIndex: 0 }, // 18 - 2 = 16
+                    { q: "Phân tử MCl₂ tổng hạt 164. Mang điện > không mang 52. M là? (Cl có Z=17, N=18)", options: ["Mg", "Ca", "Ba", "Sr"], correctIndex: 1 }, // 2Z+N + 2*(17*2+18)=164 => 2Z+N=60; 2Z + 68 - (N+36) = 52 => 2Z-N=20 => Z=20 (Ca)
+                    { q: "Phát biểu nào ĐÚNG về quy tắc Hund (sắp xếp electron vào orbital)?", options: ["Số electron độc thân là tối đa", "Các electron luôn ghép đôi", "Điền từ ngoài vào trong", "Số electron độc thân là tối thiểu"], correctIndex: 0 },
+                    { q: "Anion X⁻ có tổng số hạt cơ bản là 53. Tên nguyên tố X là?", options: ["F (Z=9)", "Cl (Z=17)", "Br (Z=35)", "S (Z=16)"], correctIndex: 1 } // 2Z+N+1 = 53 => 2Z+N=52 => Z=17 (Cl)
+                ]
+            },
+            {
+                title: "Vòng 4: Mở Khóa Kho Báu",
+                medal: "Kho Báu Cậu Vàng",
+                questions: [
+                    { q: "Cấu hình electron ở trạng thái cơ bản của Đồng (Cu, Z=29) là gì?", options: ["[Ar] 3d⁹ 4s²", "[Ar] 3d¹⁰ 4s¹", "[Ar] 3d⁸ 4s²", "[Ar] 3d¹⁰ 4s²"], correctIndex: 1 },
+                    { q: "Cu tự nhiên có ⁶³Cu và ⁶⁵Cu (27% số nguyên tử). Phần trăm khối lượng ⁶³Cu trong Cu₂O là bao nhiêu? (O=16)", options: ["73,00%", "32,14%", "64,29%", "88,82%"], correctIndex: 2 }, 
+                    { q: "KL riêng Ca là 1,55 g/cm³. Ca là hình cầu chiếm 74% thể tích. Bán kính nguyên tử Ca xấp xỉ? (M=40)", options: ["0,196 nm", "0,144 nm", "0,138 nm", "0,215 nm"], correctIndex: 0 },
+                    { q: "Cấu hình electron các ion Cr²⁺(24), Co³⁺(27), Fe²⁺(26) lần lượt là?", options: ["[Ar] 3d⁴, [Ar] 3d⁶, [Ar] 3d⁶", "[Ar] 3d⁵, [Ar] 3d⁷, [Ar] 3d⁶", "[Ar] 3d⁴, [Ar] 3d⁶, [Ar] 3d⁵", "[Ar] 3d³, [Ar] 3d⁶, [Ar] 3d⁶"], correctIndex: 0 },
+                    { q: "Anion AB₃²⁻ có tổng e là 32. Hạt nhân A, B đều có P = N. A, B cùng chu kì, B là phi kim. Anion đó là?", options: ["SO₃²⁻", "CO₃²⁻", "NO₃⁻", "SiO₃²⁻"], correctIndex: 1 }, // Za + 3Zb + 2 = 32 => Za + 3Zb = 30 => C(6) & O(8)
+                    { q: "1 nguyên tử Fe có 26e. Tổng số hạt electron trong 5,6 gam Fe (M=56) xấp xỉ bằng? (NA = 6.022×10²³)", options: ["15,66 × 10²³ hạt", "6,022 × 10²² hạt", "1,566 × 10²² hạt", "26,00 × 10²³ hạt"], correctIndex: 0 }, // 0.1 * 6.022e23 * 26 = 15.6572e23
+                    { q: "Phân tử MX₃ tổng hạt 196, mang điện > không mang điện 60. N(X) - N(M) = 4. Hạt ion X⁻ > M³⁺ là 16. Phân tử là?", options: ["FeCl₃", "CrCl₃", "AlBr₃", "AlCl₃"], correctIndex: 3 }, // AlCl3
+                    { q: "Phân tử M₃X₂ tổng hạt 222. Mang điện > không mang 74. Hạt mang điện M²⁺ > X³⁻ là 21. Hợp chất là?", options: ["Ca₃N₂", "Mg₃P₂", "Ca₃P₂", "Mg₃N₂"], correctIndex: 0 }, // Ca3N2
+                    { q: "Nguyên tử X có tổng e trên phân lớp p là 11. Y có tổng mang điện < X là 10. X và Y là?", options: ["S và Mg", "Cl và Mg", "P và Na", "Cl và Na"], correctIndex: 1 }, // X: 1s2 2s2 2p6 3s2 3p5 => Cl (Z=17). Mang điện Y = 34 - 10 = 24 => Z=12 (Mg)
+                    { q: "Hợp chất XY₂, Y chiếm 50% khối lượng. Tổng proton phân tử = 32. Hạt nhân X, Y có P=N. CTPT là?", options: ["CO₂", "NO₂", "SO₂", "SiO₂"], correctIndex: 2 } // Zx + 2Zy = 32; Mx / (Mx + 2My) = 0.5 => Mx = 2My => Zx = 2Zy => 4Zy = 32 => Zy=8 (O), Zx=16 (S) => SO2
+                ]
+            }
+        ];
+
+        // --- GAME STATE ---
+        let currentRound = 0;
+        let currentQuestion = 0;
+        let isAnswering = false;
+        
+        let totalScore = 0;
+        let playerName = "";
+
+        // --- TONE.JS AUDIO SYSTEM ---
+        let isAudioReady = false;
+        
+        // Background Music Synths
+        const bgmSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "triangle" },
+            envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.8 }
+        }).toDestination();
+        bgmSynth.volume.value = -15; // Set volume low
+
+        const bassSynth = new Tone.Synth({
+            oscillator: { type: "square" },
+            envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 }
+        }).toDestination();
+        bassSynth.volume.value = -12;
+
+        // SFX Synths
+        const sfxSynth = new Tone.Synth().toDestination();
+        sfxSynth.volume.value = -5;
+
+        // BGM Sequences
+        let bgmPart;
+        let bassPart;
+
+        async function initAudio() {
+            if (isAudioReady) return;
+            await Tone.start();
+            Tone.Transport.bpm.value = 100;
+            isAudioReady = true;
+        }
+
+        const roundMusicPatterns = [
+            // Round 1: Upbeat C Major
+            { melody: [ ["0:0", "C4"], ["0:1", "E4"], ["0:2", "G4"], ["0:3", "E4"] ], bass: [ ["0:0", "C3"], ["0:2", "G2"] ], bpm: 110 },
+            // Round 2: Fast Arps G Major
+            { melody: [ ["0:0", "G4"], ["0:0:2", "B4"], ["0:1", "D5"], ["0:1:2", "B4"], ["0:2", "G4"], ["0:3", "D5"] ], bass: [ ["0:0", "G2"], ["0:2", "D3"] ], bpm: 130 },
+            // Round 3: Mysterious A Minor
+            { melody: [ ["0:0", "A3"], ["0:1", "C4"], ["0:2", "E4"], ["0:3", "C4"] ], bass: [ ["0:0", "A2"], ["0:2", "E2"] ], bpm: 90 },
+            // Round 4: Epic F/G
+            { melody: [ ["0:0", ["F4", "A4", "C5"]], ["0:2", ["G4", "B4", "D5"]] ], bass: [ ["0:0", "F2"], ["0:2", "G2"] ], bpm: 100 }
+        ];
+
+        function playBGM(roundIndex) {
+            stopBGM();
+            if(!isAudioReady) return;
+
+            const pattern = roundMusicPatterns[roundIndex];
+            Tone.Transport.bpm.value = pattern.bpm;
+
+            bgmPart = new Tone.Part((time, note) => {
+                bgmSynth.triggerAttackRelease(note, "8n", time);
+            }, pattern.melody).start(0);
+            bgmPart.loop = true;
+            bgmPart.loopEnd = "1m";
+
+            bassPart = new Tone.Part((time, note) => {
+                bassSynth.triggerAttackRelease(note, "4n", time);
+            }, pattern.bass).start(0);
+            bassPart.loop = true;
+            bassPart.loopEnd = "1m";
+
+            Tone.Transport.start();
+        }
+
+        function stopBGM() {
+            if (bgmPart) { bgmPart.dispose(); bgmPart = null; }
+            if (bassPart) { bassPart.dispose(); bassPart = null; }
+            Tone.Transport.stop();
+        }
+
+        // --- SFX Logic ---
+        function playCorrectSound() {
+            if(!isAudioReady) return;
+            const now = Tone.now();
+            sfxSynth.triggerAttackRelease("C5", "16n", now);
+            sfxSynth.triggerAttackRelease("E5", "16n", now + 0.1);
+            sfxSynth.triggerAttackRelease("G5", "8n", now + 0.2);
+        }
+
+        function playWrongSound() {
+            if(!isAudioReady) return;
+            const now = Tone.now();
+            sfxSynth.triggerAttackRelease("C3", "8n", now);
+            sfxSynth.triggerAttackRelease("G2", "4n", now + 0.15);
+        }
+
+        function playFanfareSound() {
+            if(!isAudioReady) return;
+            const now = Tone.now();
+            sfxSynth.triggerAttackRelease("G4", "8n", now);
+            sfxSynth.triggerAttackRelease("C5", "8n", now + 0.2);
+            sfxSynth.triggerAttackRelease("E5", "8n", now + 0.4);
+            sfxSynth.triggerAttackRelease("G5", "2n", now + 0.6);
+        }
+
+        // --- GAME LOGIC ---
+        
+        async function startGame() {
+            const nameInput = document.getElementById('player-name');
+            playerName = nameInput.value.trim();
+            const warningText = document.getElementById('name-warning');
+            
+            if (!playerName) {
+                warningText.classList.remove('hidden');
+                nameInput.classList.add('border-red-500');
+                nameInput.focus();
+                return;
+            }
+            warningText.classList.add('hidden');
+            nameInput.classList.remove('border-red-500');
+
+            await initAudio(); // Must wait for user interaction to start audio
+            document.getElementById('start-screen').classList.add('hidden');
+            showMap();
+        }
+
+        function showMap() {
+            stopBGM(); // Quiet on map
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('modal-round-end').classList.add('hidden');
+            const mapScreen = document.getElementById('map-screen');
+            mapScreen.classList.remove('hidden');
+
+            // Update UI based on progress
+            for(let i=0; i<4; i++) {
+                const card = document.getElementById(`card-round-${i}`);
+                if(i < currentRound) {
+                    card.classList.remove('opacity-50');
+                    card.classList.add('border-green-400');
+                    if(document.getElementById(`medal-${i}`)) {
+                        document.getElementById(`medal-${i}`).classList.remove('opacity-0');
+                    }
+                } else if (i === currentRound) {
+                    card.classList.remove('opacity-50');
+                    card.classList.add('border-yellow-400', 'pulse-btn');
+                } else {
+                    card.classList.add('opacity-50');
+                    card.classList.remove('border-yellow-400', 'pulse-btn');
+                }
+            }
+
+            document.getElementById('display-round-num').innerText = currentRound + 1;
+            document.getElementById('btn-start-round').classList.remove('hidden');
+        }
+
+        function startCurrentRound() {
+            document.getElementById('map-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('game-round-title').innerText = gameData[currentRound].title;
+            currentQuestion = 0;
+            
+            playBGM(currentRound); // Start round music
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isAnswering = false;
+            const qData = gameData[currentRound].questions[currentQuestion];
+            
+            // Update Text
+            document.getElementById('question-text').innerText = qData.q;
+            document.getElementById('question-counter').innerText = `${currentQuestion + 1}/10`;
+            
+            // Progress Bar
+            const progress = ((currentQuestion) / 10) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+
+            // Options
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            const labels = ["A", "B", "C", "D"];
+            qData.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-answer flex items-center justify-start text-left p-4 rounded-2xl text-xl font-bold transition-all';
+                btn.innerHTML = `<span class="bg-blue-100 text-blue-800 w-10 h-10 rounded-full flex items-center justify-center mr-4 shrink-0">${labels[index]}</span> <span>${opt}</span>`;
+                btn.onclick = () => selectAnswer(index, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectAnswer(index, btnElement) {
+            if (isAnswering) return;
+            isAnswering = true;
+            
+            const qData = gameData[currentRound].questions[currentQuestion];
+            const isCorrect = (index === qData.correctIndex);
+            const allBtns = document.querySelectorAll('.btn-answer');
+
+            // Highlight Correct / Wrong
+            if (isCorrect) {
+                totalScore++; // Cộng 1 điểm cho mỗi câu đúng
+                playCorrectSound();
+                btnElement.classList.add('correct-answer');
+                showFeedback(true);
+            } else {
+                playWrongSound();
+                btnElement.classList.add('wrong-answer');
+                allBtns[qData.correctIndex].classList.add('correct-answer'); // Show correct one
+                showFeedback(false);
+            }
+            
+            // Disable buttons
+            allBtns.forEach(b => b.classList.add('opacity-80', 'cursor-not-allowed'));
+        }
+
+        function showFeedback(isCorrect) {
+            const modal = document.getElementById('modal-feedback');
+            const icon = document.getElementById('feedback-icon');
+            const title = document.getElementById('feedback-title');
+            const desc = document.getElementById('feedback-desc');
+            const contentBox = document.getElementById('feedback-content');
+
+            modal.classList.remove('hidden');
+
+            if(isCorrect) {
+                icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                icon.className = 'text-7xl mb-4 text-green-500';
+                contentBox.className = 'bg-white text-center rounded-3xl p-8 max-w-sm w-full border-4 border-green-500 modal-enter';
+                title.innerText = 'Chính Xác!';
+                title.className = 'text-3xl font-bold text-green-600 heading-font mb-2';
+                desc.innerText = 'Tuyệt vời, bạn đã trả lời đúng!';
+            } else {
+                icon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+                icon.className = 'text-7xl mb-4 text-red-500';
+                contentBox.className = 'bg-white text-center rounded-3xl p-8 max-w-sm w-full border-4 border-red-500 modal-enter';
+                title.innerText = 'Chưa Đúng Rồi!';
+                title.className = 'text-3xl font-bold text-red-600 heading-font mb-2';
+                desc.innerText = 'Hãy chú ý hơn ở câu sau nhé.';
+            }
+        }
+
+        function nextQuestion() {
+            document.getElementById('modal-feedback').classList.add('hidden');
+            
+            currentQuestion++;
+            if (currentQuestion < 10) {
+                loadQuestion();
+            } else {
+                endRound();
+            }
+        }
+
+        function endRound() {
+            stopBGM();
+            playFanfareSound();
+            
+            if (currentRound < 3) {
+                const modal = document.getElementById('modal-round-end');
+                document.getElementById('medal-name').innerText = gameData[currentRound].medal;
+                modal.classList.remove('hidden');
+            } else {
+                // Victory!
+                document.getElementById('display-player-name').innerText = playerName;
+                document.getElementById('final-score').innerText = totalScore;
+                document.getElementById('modal-victory').classList.remove('hidden');
+                
+                const saveStatus = document.getElementById('save-status');
+                if (window.submitScoreToFirebase) {
+                    window.submitScoreToFirebase(playerName, totalScore).then(success => {
+                        if (success) {
+                            saveStatus.innerHTML = '<i class="fa-solid fa-check-circle text-green-500 mr-2"></i> Đã gửi điểm số thành công cho giáo viên!';
+                            saveStatus.className = "mt-6 text-center font-bold text-xl text-green-700 bg-green-50 px-6 py-3 rounded-full border border-green-200 drop-shadow-sm";
+                        } else {
+                            saveStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-500 mr-2"></i> Chưa gửi được điểm. Hãy chụp màn hình lại nhé!';
+                            saveStatus.className = "mt-6 text-center font-bold text-xl text-red-700 bg-red-50 px-6 py-3 rounded-full border border-red-200 drop-shadow-sm";
+                        }
+                    });
+                } else {
+                     saveStatus.innerHTML = '<i class="fa-solid fa-check-circle text-green-500 mr-2"></i> Hoàn thành xuất sắc!';
+                     saveStatus.className = "mt-6 text-center font-bold text-xl text-green-700 bg-green-50 px-6 py-3 rounded-full border border-green-200 drop-shadow-sm";
+                }
+            }
+        }
+
+        function returnToMap() {
+            document.getElementById('modal-round-end').classList.add('hidden');
+            currentRound++;
+            showMap();
+        }
+
+    </script>
+</body>
+</html>
